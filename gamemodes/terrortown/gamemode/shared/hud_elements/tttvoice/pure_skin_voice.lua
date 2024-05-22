@@ -55,13 +55,7 @@ if CLIENT then
         local wNick = w - h - self.padding
 
         draw.Box(xPos + self.padding, yPos, w - self.padding, heightBar, color)
-        self:DrawLines(
-            xPos + self.padding,
-            yPos,
-            w - self.padding,
-            heightBar,
-            color.a
-        )
+        self:DrawLines(xPos + self.padding, yPos, w - self.padding, heightBar, color.a)
 
         for i = 1, #data do
             local yValue = math.floor(data[i] * 0.5 * heightBar - 4 * self.scale)

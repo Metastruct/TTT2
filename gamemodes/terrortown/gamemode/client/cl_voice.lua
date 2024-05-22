@@ -180,7 +180,7 @@ end
 -- @realm client
 function VOICE.GetVoiceColor(ply)
     if VOICE.GetVoiceMode(ply) == VOICE_MODE_GLOBAL then
-        return NONE.color
+        return COLOR_SPEC
     else
         return TEAMS[ply:GetTeam()].color
     end

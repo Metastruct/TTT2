@@ -46,6 +46,10 @@ surface.CreateAdvancedFont(
     "PureSkinPopupText",
     { font = "Tahoma", size = 18, weight = 600, extended = true }
 )
+surface.CreateAdvancedFont(
+    "PureSkinPopupTextBlur",
+    { font = "Tahoma", size = 18, weight = 600, extended = true, blursize = 2 }
+)
 
 -- base drawing functions
 include("cl_drawing_functions.lua")
@@ -78,9 +82,6 @@ function HUD:Initialize()
 
     BaseClass.Initialize(self)
 end
-
--- Voice overriding
-include("cl_voice.lua")
 
 -- Popup overriding
 include("cl_popup.lua")

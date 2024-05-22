@@ -7,16 +7,16 @@ DEFINE_BASECLASS(base)
 HUDELEMENT.Base = base
 
 if CLIENT then
-    local padding = 6
+    local padding = 8
 
     local colorVoiceBar = Color(255, 255, 255, 35)
     local colorVoiceLine = Color(255, 255, 255, 140)
-    local colorVoiceDevider = Color(255, 255, 255, 175)
+    local colorVoiceDivider = Color(255, 255, 255, 175)
 
     local baseDefaults = {
         basepos = { x = 0, y = 0 },
-        size = { w = 240, h = 42 },
-        minsize = { w = 120, h = 42 },
+        size = { w = 240, h = 48 },
+        minsize = { w = 120, h = 48 },
     }
 
     function HUDELEMENT:Initialize()
@@ -31,7 +31,7 @@ if CLIENT then
     end
 
     function HUDELEMENT:GetDefaults()
-        baseDefaults["basepos"] = {
+        baseDefaults.basepos = {
             x = 10 * self.scale,
             y = 10 * self.scale,
         }
@@ -50,14 +50,14 @@ if CLIENT then
         local color = VOICE.GetVoiceColor(ply)
         local data = VOICE.GetFakeVoiceSpectrum(ply, 24)
 
-        local widthBar = (w - h - self.padding) / #data - 1
-        local heightBar = h - 2 * self.padding
+        local widthBar = (w - h) / #data - 1
+        local heightBar = h
         local wNick = w - h - self.padding
 
-        draw.Box(xPos + self.padding, yPos + self.padding, w - self.padding, heightBar, color)
+        draw.Box(xPos + self.padding, yPos, w - self.padding, heightBar, color)
         self:DrawLines(
             xPos + self.padding,
-            yPos + self.padding,
+            yPos,
             w - self.padding,
             heightBar,
             color.a
@@ -67,7 +67,7 @@ if CLIENT then
             local yValue = math.floor(data[i] * 0.5 * heightBar - 4 * self.scale)
 
             draw.Box(
-                xPos + h + 3 + (i - 1) * (widthBar + 1),
+                xPos + h + (i - 1) * (widthBar + 1),
                 yPos + 0.5 * h - yValue - 1,
                 widthBar,
                 yValue,
@@ -75,7 +75,7 @@ if CLIENT then
             )
             if yValue > 1 then
                 draw.Box(
-                    xPos + h + 3 + (i - 1) * (widthBar + 1),
+                    xPos + h + (i - 1) * (widthBar + 1),
                     yPos + 0.5 * h - yValue - 2,
                     widthBar,
                     self.scale,
@@ -84,15 +84,15 @@ if CLIENT then
             end
 
             draw.Box(
-                xPos + h + 3 + (i - 1) * (widthBar + 1),
+                xPos + h + (i - 1) * (widthBar + 1),
                 yPos + 0.5 * h,
                 widthBar,
                 self.scale,
-                colorVoiceDevider
+                colorVoiceDivider
             )
 
             draw.Box(
-                xPos + h + 3 + (i - 1) * (widthBar + 1),
+                xPos + h + (i - 1) * (widthBar + 1),
                 yPos + 0.5 * h + 2,
                 widthBar,
                 yValue,
@@ -100,7 +100,7 @@ if CLIENT then
             )
             if yValue > 1 then
                 draw.Box(
-                    xPos + h + 3 + (i - 1) * (widthBar + 1),
+                    xPos + h + (i - 1) * (widthBar + 1),
                     yPos + 0.5 * h + 2 + yValue,
                     widthBar,
                     self.scale,
@@ -120,15 +120,64 @@ if CLIENT then
         )
         self:DrawLines(xPos, yPos, h, h, 255)
 
+        local textColor = util.GetDefaultColor(color)
+        local textBgColor = util.GetDefaultColor(textColor)
+
+        local textBgSpacing = 1
+        draw.AdvancedText(
+            ply:NickElliptic(wNick, "PureSkinPopupTextBlur", self.scale),
+            "PureSkinPopupTextBlur",
+            xPos + h + self.padding - textBgSpacing,
+            yPos + h * 0.5 - 1 - textBgSpacing,
+            textBgColor,
+            TEXT_ALIGN_LEFT,
+            TEXT_ALIGN_CENTER,
+            false,
+            self.scale
+        )
+        draw.AdvancedText(
+            ply:NickElliptic(wNick, "PureSkinPopupTextBlur", self.scale),
+            "PureSkinPopupTextBlur",
+            xPos + h + self.padding + textBgSpacing,
+            yPos + h * 0.5 - 1 - textBgSpacing,
+            textBgColor,
+            TEXT_ALIGN_LEFT,
+            TEXT_ALIGN_CENTER,
+            false,
+            self.scale
+        )
+        draw.AdvancedText(
+            ply:NickElliptic(wNick, "PureSkinPopupTextBlur", self.scale),
+            "PureSkinPopupTextBlur",
+            xPos + h + self.padding - textBgSpacing,
+            yPos + h * 0.5 - 1 + textBgSpacing,
+            textBgColor,
+            TEXT_ALIGN_LEFT,
+            TEXT_ALIGN_CENTER,
+            false,
+            self.scale
+        )
+        draw.AdvancedText(
+            ply:NickElliptic(wNick, "PureSkinPopupTextBlur", self.scale),
+            "PureSkinPopupTextBlur",
+            xPos + h + self.padding + textBgSpacing,
+            yPos + h * 0.5 - 1 + textBgSpacing,
+            textBgColor,
+            TEXT_ALIGN_LEFT,
+            TEXT_ALIGN_CENTER,
+            false,
+            self.scale
+        )
+
         draw.AdvancedText(
             ply:NickElliptic(wNick, "PureSkinPopupText", self.scale),
             "PureSkinPopupText",
             xPos + h + self.padding,
             yPos + h * 0.5 - 1,
-            util.GetDefaultColor(color),
+            textColor,
             TEXT_ALIGN_LEFT,
             TEXT_ALIGN_CENTER,
-            true,
+            false,
             self.scale
         )
     end

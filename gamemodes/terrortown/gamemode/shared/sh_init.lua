@@ -578,6 +578,7 @@ include("ttt2/libraries/fonts.lua")
 include("ttt2/libraries/appearance.lua")
 include("ttt2/libraries/drawsc.lua")
 include("ttt2/libraries/vguihandler.lua")
+include("ttt2/libraries/tips.lua")
 include("ttt2/libraries/vskin.lua")
 include("ttt2/libraries/door.lua")
 include("ttt2/libraries/orm.lua")
@@ -586,6 +587,7 @@ include("ttt2/libraries/marks.lua")
 include("ttt2/libraries/outline.lua")
 include("ttt2/libraries/thermalvision.lua")
 include("ttt2/libraries/roles.lua")
+include("ttt2/libraries/gameloop.lua")
 include("ttt2/libraries/events.lua")
 include("ttt2/libraries/eventdata.lua")
 include("ttt2/libraries/targetid.lua")
@@ -593,6 +595,7 @@ include("ttt2/libraries/playermodels.lua")
 include("ttt2/libraries/entspawnscript.lua")
 include("ttt2/libraries/bodysearch.lua")
 include("ttt2/libraries/keyhelp.lua")
+include("ttt2/libraries/loadingscreen.lua")
 include("ttt2/libraries/marker_vision.lua")
 include("ttt2/libraries/weaponrenderer.lua")
 include("ttt2/libraries/game_effects.lua")
@@ -630,22 +633,6 @@ function GetEquipmentByName(name)
     name = GetEquipmentFileName(name)
 
     return not items.IsItem(name) and weapons.GetStored(name) or items.GetStored(name), name
-end
-
----
--- Returns whether the detective mode is enabled
--- @return boolean
--- @realm shared
-function DetectiveMode()
-    return GetGlobalBool("ttt_detective", false)
-end
-
----
--- Returns whether the haste mode is enabled
--- @return boolean
--- @realm shared
-function HasteMode()
-    return GetGlobalBool("ttt_haste", false)
 end
 
 -- Create teams

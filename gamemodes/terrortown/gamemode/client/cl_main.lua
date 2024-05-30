@@ -5,7 +5,6 @@ local math = math
 local net = net
 local player = player
 local timer = timer
-local util = util
 local IsValid = IsValid
 local surface = surface
 local hook = hook
@@ -100,7 +99,6 @@ ttt_include("cl_marker_vision_data")
 ttt_include("cl_search")
 ttt_include("cl_tbuttons")
 ttt_include("cl_scoreboard")
-ttt_include("cl_tips")
 ttt_include("cl_msgstack")
 ttt_include("cl_eventpopup")
 ttt_include("cl_hudpickup")
@@ -139,11 +137,6 @@ local TryT = LANG.TryTranslation
 ---
 -- @realm client
 -- stylua: ignore
-local cvSoundCues = CreateConVar("ttt_cl_soundcues", "0", FCVAR_ARCHIVE, "Optional sound cues on round start and end")
-
----
--- @realm client
--- stylua: ignore
 local cvEnableBobbing = CreateConVar("ttt2_enable_bobbing", "1", FCVAR_ARCHIVE)
 
 ---
@@ -158,19 +151,6 @@ local cvEnableDynamicFOV = CreateConVar("ttt2_enable_dynamic_fov", "1", {FCVAR_N
 cvars.AddChangeCallback("ttt2_enable_dynamic_fov", function(_, _, valueNew)
     LocalPlayer():SetSettingOnServer("enable_dynamic_fov", tobool(valueNew))
 end)
-
-local cues = {
-    Sound("ttt/thump01e.mp3"),
-    Sound("ttt/thump02e.mp3"),
-}
-
-local function PlaySoundCue()
-    if not cvSoundCues:GetBool() then
-        return
-    end
-
-    surface.PlaySound(cues[math.random(#cues)])
-end
 
 ---
 -- Called after the gamemode loads and starts.
@@ -188,9 +168,6 @@ function GM:Initialize()
     -- @realm client
     -- stylua: ignore
     hook.Run("TTT2Initialize")
-
-    self.round_state = ROUND_WAIT
-    self.roundCount = 0
 
     -- load default TTT2 language files or mark them as downloadable on the server
     -- load addon language files in a second pass, the core language files are loaded earlier
@@ -229,6 +206,8 @@ function GM:Initialize()
     keyhelp.InitializeBasicKeys()
 
     ShopEditor.BuildValidEquipmentCache()
+
+    tips.Initialize()
 
     ---
     -- @realm shared
@@ -413,6 +392,8 @@ function GM:OnReloaded()
 
     ShopEditor.BuildValidEquipmentCache()
 
+    tips.Initialize()
+
     LocalPlayer():SetSettingOnServer(
         "enable_dynamic_fov",
         GetConVar("ttt2_enable_dynamic_fov"):GetBool()
@@ -448,99 +429,6 @@ function GM:HUDClear()
     TBHUD:Clear()
 end
 
----
--- Returns the current round state
--- @return boolean
--- @realm client
-function GetRoundState()
-    return GAMEMODE.round_state
-end
-
-local function RoundStateChange(o, n)
-    if n == ROUND_PREP then
-        -- prep starts
-        GAMEMODE:ClearClientState()
-        GAMEMODE:CleanUpMap()
-
-        EPOP:Clear()
-
-        -- show warning to spec mode players
-        if GetConVar("ttt_spectator_mode"):GetBool() and IsValid(LocalPlayer()) then
-            LANG.Msg("spec_mode_warning", nil, MSG_CHAT_WARN)
-        end
-
-        -- reset cached server language in case it has changed
-        RunConsoleCommand("_ttt_request_serverlang")
-
-        GAMEMODE.roundCount = GAMEMODE.roundCount + 1
-
-        -- clear decals in cache from previous round
-        util.ClearDecals()
-
-        local client = LocalPlayer()
-
-        -- Resets bone positions that fixes broken fingers on bad addons.
-        -- When late-joining a server this function is executed before the local player
-        -- is completely set up. Therefore we safeguard this with this check.
-        if IsValid(client) and isfunction(client.GetViewModel) then
-            weaponrenderer.ResetBonePositions(client:GetViewModel())
-        end
-    elseif n == ROUND_ACTIVE then
-        -- round starts
-        VOICE.CycleMuteState(MUTE_NONE)
-
-        CLSCORE:ClearPanel()
-
-        -- people may have died and been searched during prep
-        local plys = playerGetAll()
-        for i = 1, #plys do
-            bodysearch.ResetSearchResult(plys[i])
-        end
-
-        -- clear blood decals produced during prep
-        util.ClearDecals()
-
-        GAMEMODE.StartingPlayers = #util.GetAlivePlayers()
-
-        PlaySoundCue()
-    elseif n == ROUND_POST then
-        RunConsoleCommand("ttt_cl_traitorpopup_close")
-
-        PlaySoundCue()
-    end
-
-    -- stricter checks when we're talking about hooks, because this function may
-    -- be called with for example o = WAIT and n = POST, for newly connecting
-    -- players, which hooking code may not expect
-    if n == ROUND_PREP then
-        ---
-        -- Can enter PREP from any phase due to ttt_roundrestart
-        -- @realm shared
-        -- stylua: ignore
-        hook.Run("TTTPrepareRound")
-    elseif o == ROUND_PREP and n == ROUND_ACTIVE then
-        ---
-        -- @realm shared
-        -- stylua: ignore
-        hook.Run("TTTBeginRound")
-    elseif o == ROUND_ACTIVE and n == ROUND_POST then
-        ---
-        -- @realm shared
-        -- stylua: ignore
-        hook.Run("TTTEndRound")
-    end
-
-    -- whatever round state we get, clear out the voice flags
-    local winTeams = roles.GetWinTeams()
-
-    local plys = playerGetAll()
-    for i = 1, #plys do
-        for k = 1, #winTeams do
-            plys[i][winTeams[k] .. "_gvoice"] = false
-        end
-    end
-end
-
 local function ttt_print_playercount()
     Dev(2, GAMEMODE.StartingPlayers)
 end
@@ -566,14 +454,6 @@ local function ReceiveRole()
     client:SetRole(subrole, team)
 end
 net.Receive("TTT_Role", ReceiveRole)
-
-local function ReceiveRoleReset()
-    local plys = playerGetAll()
-    for i = 1, #plys do
-        plys[i]:SetRole(ROLE_NONE, TEAM_NONE)
-    end
-end
-net.Receive("TTT_RoleReset", ReceiveRoleReset)
 
 -- role test
 local function TTT2TestRole()
@@ -613,20 +493,6 @@ local function ReceiveRoleList()
 end
 net.Receive("TTT_RoleList", ReceiveRoleList)
 
--- Round state comm
-local function ReceiveRoundState()
-    local o = GetRoundState()
-
-    GAMEMODE.round_state = net.ReadUInt(3)
-
-    if o ~= GAMEMODE.round_state then
-        RoundStateChange(o, GAMEMODE.round_state)
-    end
-
-    Dev(1, "Round state: " .. GAMEMODE.round_state)
-end
-net.Receive("TTT_RoundState", ReceiveRoundState)
-
 ---
 -- Cleanup at start of new round
 -- @note Called if a new round begins (round state changes to <code>ROUND_PREP</code>)
@@ -635,12 +501,14 @@ net.Receive("TTT_RoundState", ReceiveRoundState)
 function GM:ClearClientState()
     self:HUDClear()
 
-    local client = LocalPlayer()
-    if not client.SetRole then
-        return
-    end -- code not loaded yet
+    -- todo: stuff like this should be in their respective files inside the hooks
+    -- maybe even the prepare round hook? this mess has to go
 
-    client:SetRole(ROLE_NONE)
+    local client = LocalPlayer()
+
+    if not client:IsReady() then
+        return
+    end
 
     client.equipmentItems = {}
     client.equipment_credits = 0
@@ -654,17 +522,13 @@ function GM:ClearClientState()
     VOICE.InitBattery()
 
     local plys = playerGetAll()
+
     for i = 1, #plys do
-        local pl = plys[i]
-        if not IsValid(pl) then
-            continue
-        end
+        local ply = plys[i]
 
-        pl.sb_tag = nil
+        ply.sb_tag = nil
 
-        pl:SetRole(ROLE_NONE)
-
-        bodysearch.ResetSearchResult(pl)
+        bodysearch.ResetSearchResult(ply)
     end
 
     VOICE.CycleMuteState(MUTE_NONE)
@@ -677,9 +541,6 @@ function GM:ClearClientState()
 
     gui.EnableScreenClicker(false)
 end
-net.Receive("TTT_ClearClientState", function()
-    GAMEMODE:ClearClientState()
-end)
 
 local color_trans = Color(0, 0, 0, 0)
 
@@ -711,36 +572,7 @@ function GM:CleanUpMap()
         -- modify the collision group clientside.
         ent.NoTarget = true
     end
-
-    game.CleanUpMap()
 end
-
--- server tells us to call this when our LocalPlayer has spawned
-local function PlayerSpawn()
-    local as_spec = net.ReadBit() == 1
-    if as_spec then
-        TIPS.Show()
-    else
-        TIPS.Hide()
-    end
-
-    -- TTT Totem prevention
-    if LocalPlayer().GetRoleTable then
-        ErrorNoHaltWithStack(
-            "[TTT2][ERROR] You have TTT Totem activated! You really should disable it!\n-- Disable it by unsubscribe it! --\nI know, that's not nice, but there's no way. It's an internally problem of GMod..."
-        )
-    end
-end
-net.Receive("TTT_PlayerSpawned", PlayerSpawn)
-
-local function PlayerDeath()
-    if not TIPS then
-        return
-    end
-
-    TIPS.Show()
-end
-net.Receive("TTT_PlayerDied", PlayerDeath)
 
 ---
 -- Called to determine if the LocalPlayer should be drawn.
@@ -1050,7 +882,7 @@ function CheckIdle()
     if
         GetGlobalBool("ttt_idle", false)
         and IsValid(client)
-        and GetRoundState() == ROUND_ACTIVE
+        and gameloop.GetRoundState() == ROUND_ACTIVE
         and client:IsTerror()
         and client:Alive()
         and client:IsFullySignedOn()

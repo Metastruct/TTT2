@@ -140,7 +140,7 @@ function IgniteTarget(att, path, dmginfo)
     end
 
     if CLIENT and IsFirstTimePredicted() then
-        if ent:IsRagdoll() then
+        if ent:GetClass() == "prop_ragdoll" then
             ScorchUnderRagdoll(ent)
         end
         return
@@ -164,7 +164,7 @@ function IgniteTarget(att, path, dmginfo)
                     ent.ignite_info = nil
                 end
             end)
-        elseif ent:IsRagdoll() then
+        elseif ent:GetClass() == "prop_ragdoll" then
             ScorchUnderRagdoll(ent)
 
             local burn_time = 6
@@ -219,12 +219,10 @@ function SWEP:PrimaryAttack()
 
     self:TakePrimaryAmmo(1)
 
-    local owner = self:GetOwner()
+    if IsValid(self:GetOwner()) then
+        self:GetOwner():SetAnimation(PLAYER_ATTACK1)
 
-    if IsValid(owner) then
-        owner:SetAnimation(PLAYER_ATTACK1)
-
-        owner:ViewPunch(
+        self:GetOwner():ViewPunch(
             Angle(
                 math.Rand(-0.2, -0.1) * self.Primary.Recoil,
                 math.Rand(-0.1, 0.1) * self.Primary.Recoil,

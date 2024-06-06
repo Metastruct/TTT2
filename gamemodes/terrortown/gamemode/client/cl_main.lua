@@ -519,7 +519,7 @@ function GM:ClearClientState()
 
     client:SetTargetPlayer(nil)
 
-    voicebattery.InitBattery()
+    VOICE.InitBattery()
 
     local plys = playerGetAll()
 

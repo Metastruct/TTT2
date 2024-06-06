@@ -28,7 +28,7 @@ end
 SWEP.Base = "weapon_tttbase"
 
 SWEP.Primary.Recoil = 0.1
-SWEP.Primary.Delay = 12
+SWEP.Primary.Delay = 12.0
 SWEP.Primary.Cone = 0.02
 SWEP.Primary.ClipSize = 6
 SWEP.Primary.DefaultClip = 6
@@ -218,15 +218,13 @@ function SWEP:CreateHammer(tgt, pos)
         return
     end
 
-    local ply = self:GetOwner()
-
-    local ang = ply:GetAimVector():Angle()
+    local ang = self:GetOwner():GetAimVector():Angle()
     ang:RotateAroundAxis(ang:Right(), 90)
 
     hammer:SetPos(pos)
     hammer:SetAngles(ang)
     hammer:Spawn()
-    hammer:SetOwner(ply)
+    hammer:SetOwner(self:GetOwner())
 
     local stuck = hammer:StickTo(tgt)
 
@@ -272,13 +270,12 @@ if SERVER then
     function SWEP:Think()
         BaseClass.Think(self)
 
-        local ply = self:GetOwner()
-        if not IsValid(ply) then
+        if not IsValid(self:GetOwner()) then
             return
         end
 
-        if self.IsCharging and ply:KeyDown(IN_ATTACK2) then
-            local tr = ply:GetEyeTrace(MASK_SOLID)
+        if self.IsCharging and self:GetOwner():KeyDown(IN_ATTACK2) then
+            local tr = self:GetOwner():GetEyeTrace(MASK_SOLID)
 
             if tr.HitNonWorld and ValidTarget(tr.Entity) then
                 if self:GetCharge() >= 1 then
@@ -295,7 +292,7 @@ if SERVER then
 
                     return true
                 elseif self.NextCharge < CurTime() then
-                    local d = tr.Entity:GetPos():Distance(ply:GetPos())
+                    local d = tr.Entity:GetPos():Distance(self:GetOwner():GetPos())
                     local f = math.max(1, math.floor(d / self.MaxRange))
 
                     self:SetCharge(math.min(1, self:GetCharge() + (CHARGE_AMOUNT / f)))
@@ -326,12 +323,13 @@ if CLIENT then
     function SWEP:UpdateGhost(pos, c, a)
         if IsValid(self.Ghost) and self.Ghost:GetPos() ~= pos then
             self.Ghost:SetPos(pos)
-
             local ang = LocalPlayer():GetAimVector():Angle()
             ang:RotateAroundAxis(ang:Right(), 90)
 
             self.Ghost:SetAngles(ang)
+
             self.Ghost:SetColor(Color(c.r, c.g, c.b, a))
+
             self.Ghost:SetNoDraw(false)
         end
     end
@@ -342,10 +340,14 @@ if CLIENT then
 
     ---
     -- @ignore
-    function SWEP:ViewModelDrawn(vm)
-        BaseClass.ViewModelDrawn(self, vm)
+    function SWEP:ViewModelDrawn()
+        BaseClass.ViewModelDrawn(self)
 
         local client = LocalPlayer()
+        local vm = client:GetViewModel()
+        if not IsValid(vm) then
+            return
+        end
 
         local plytr = client:GetEyeTrace()
 
@@ -427,8 +429,8 @@ if CLIENT then
     function SWEP:DrawHUD()
         self:DrawHelp()
 
-        local x = ScrW() * 0.5
-        local y = ScrH() * 0.5
+        local x = ScrW() / 2.0
+        local y = ScrH() / 2.0
 
         local charge = self:GetCharge()
 
@@ -436,9 +438,8 @@ if CLIENT then
             y = y + (y / 3)
 
             local w, h = 100, 20
-            local wHalf = w * 0.5
 
-            surface.DrawOutlinedRect(x - wHalf, y - h, w, h, 1)
+            surface.DrawOutlinedRect(x - w / 2, y - h, w, h, 1)
 
             if LocalPlayer():IsTraitor() then
                 surface.SetDrawColor(255, 0, 0, 155)
@@ -446,11 +447,11 @@ if CLIENT then
                 surface.SetDrawColor(0, 255, 0, 155)
             end
 
-            surface.DrawRect(x - wHalf, y - h, w * charge, h)
+            surface.DrawRect(x - w / 2, y - h, w * charge, h)
 
             surface.SetFont("TabLarge")
             surface.SetTextColor(255, 255, 255, 180)
-            surface.SetTextPos((x - wHalf) + 3, y - h - 15)
+            surface.SetTextPos((x - w / 2) + 3, y - h - 15)
             surface.DrawText("CHARGE")
         end
     end

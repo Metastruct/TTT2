@@ -120,9 +120,6 @@ function SWEP:PrimaryAttack()
     self:SendWeaponAnim(ACT_VM_PRIMARYATTACK)
 
     local owner = self:GetOwner()
-    if not IsValid(owner) then
-        return
-    end
 
     -- will be tracing against players
     owner:LagCompensation(true)
@@ -204,7 +201,7 @@ function SWEP:GatherDNA(ent)
         return
     end
 
-    if ent:IsRagdoll() and ent.killer_sample then
+    if ent:GetClass() == "prop_ragdoll" and ent.killer_sample then
         self:GatherRagdollSample(ent)
     elseif ent.fingerprints and #ent.fingerprints > 0 then
         self:GatherObjectSample(ent)
@@ -538,10 +535,10 @@ if CLIENT then
 
         cam.Start2D()
 
-        -- Draw background
+        --draw background
         draw.FilteredTexture(0, 0, 512, 512, dna_screen_background, 255, COLOR_WHITE)
 
-        -- Draw current slot
+        --draw current slot
         local identifier = string.char(64 + self.ActiveSample)
 
         draw.AdvancedText(
@@ -630,15 +627,15 @@ if CLIENT then
 
     ---
     -- @ignore
-    function SWEP:PreDrawViewModel(vm)
+    function SWEP:PreDrawViewModel()
         self:FillScannerScreen()
-        vm:SetSubMaterial(0, "!scanner_screen_mat")
+        self:GetOwner():GetViewModel():SetSubMaterial(0, "!scanner_screen_mat")
     end
 
     ---
     -- @ignore
-    function SWEP:PostDrawViewModel(vm)
-        vm:SetSubMaterial(0, nil)
+    function SWEP:PostDrawViewModel()
+        self:GetOwner():GetViewModel():SetSubMaterial(0, nil)
     end
 
     ---
@@ -725,10 +722,11 @@ if CLIENT then
     end
 
     local function ScannerFeedback()
-        local scanner = LocalPlayer():GetWeapon("weapon_ttt_wtester")
-        if not IsValid(scanner) then
+        if not LocalPlayer():HasWeapon("weapon_ttt_wtester") then
             return
         end
+
+        local scanner = LocalPlayer():GetWeapon("weapon_ttt_wtester")
 
         local successful = net.ReadBool()
         local oldFound = net.ReadBool()
@@ -757,11 +755,13 @@ if CLIENT then
     net.Receive("TTT2ScannerFeedback", ScannerFeedback)
 
     local function ScannerUpdate()
-        local scanner = LocalPlayer():GetWeapon("weapon_ttt_wtester")
-        if not IsValid(scanner) then
+        local client = LocalPlayer()
+
+        if not client:HasWeapon("weapon_ttt_wtester") then
             return
         end
 
+        local scanner = client:GetWeapon("weapon_ttt_wtester")
         local idx = net.ReadUInt(8)
 
         scanner.ItemSamples[idx] = net.ReadEntity()
